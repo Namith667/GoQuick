@@ -4,23 +4,25 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"os"
 
 	"github.com/Namith667/GoQuick/internal/db"
-	"github.com/gorilla/mux"
+	"github.com/Namith667/GoQuick/internal/routes"
+	"github.com/joho/godotenv"
 )
 
 func main() {
 
+	err := godotenv.Load()
+	if err != nil {
+		log.Println("No .env file found or error loading it")
+	}
+
 	database := db.Connect()
 
 	db.RunMigrations(database)
-
-	r := mux.NewRouter()
-	r.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(http.StatusOK)
-		w.Write([]byte(" server Healthy"))
-	})
+	r := routes.InitRoutes()
 
 	fmt.Println("starting Server :8080")
-	log.Fatal(http.ListenAndServe(":8080", r))
+	log.Fatal(http.ListenAndServe(":"+os.Getenv("PORT"), r))
 }
