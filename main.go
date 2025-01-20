@@ -21,7 +21,7 @@ func main() {
 	database := db.Connect()
 
 	db.RunMigrations(database)
-	r := routes.InitRoutes()
+	r := routes.InitRoutes(database)
 
 	fmt.Println("starting Server :8080")
 	log.Fatal(http.ListenAndServe(":"+os.Getenv("PORT"), r))
