@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"net/http"
 
+	"github.com/Namith667/GoQuick/internal/models"
 	"github.com/Namith667/GoQuick/internal/services"
 )
 
@@ -16,11 +17,7 @@ func NewAuthHandler(authService *services.AuthService) *AuthHandler {
 }
 
 func (ah *AuthHandler) RegisterUser(w http.ResponseWriter, r *http.Request) {
-	var input struct {
-		Username string `json:"username"`
-		Email    string `json:"email"`
-		Password string `json:"password"`
-	}
+	var input models.RegisterUserInput
 
 	if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
 		http.Error(w, "invalid input", http.StatusBadRequest)
@@ -32,17 +29,18 @@ func (ah *AuthHandler) RegisterUser(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "User registration failed", http.StatusInternalServerError)
 		return
 	}
+	//added a reg-user response(see models package) to avoid sending back password
+	response := models.UserResponse{
+		ID:       user.ID,
+		Username: user.Name,
+		Email:    user.Email,
+	}
 	w.WriteHeader(http.StatusCreated)
-	json.NewEncoder(w).Encode(user)
+	json.NewEncoder(w).Encode(response)
 }
 
 func (ah *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
-	var input struct {
-		Username string `json:"username"`
-		Email    string `json:"email"`
-		Password string `json:"password"`
-	}
-
+	var input models.LoginUserInput
 	if error := json.NewDecoder(r.Body).Decode(&input); error != nil {
 		http.Error(w, "Invalid input", http.StatusBadRequest)
 		return

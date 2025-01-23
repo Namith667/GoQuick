@@ -1,27 +1,36 @@
 package routes
 
 import (
+	"log"
+
+	"github.com/Namith667/GoQuick/internal/db"
 	"github.com/Namith667/GoQuick/internal/handlers"
 	"github.com/Namith667/GoQuick/internal/services"
 	"github.com/gorilla/mux"
-	"gorm.io/gorm"
 )
 
-func InitRoutes(db *gorm.DB) *mux.Router {
+func InitRoutes(database db.Database) *mux.Router {
 	r := mux.NewRouter()
+
+	conn, err := database.Connect()
+	if err != nil {
+		log.Fatalf("Database connection failed: %v", err)
+	}
+
+	productHandler := handlers.NewProductHandler(database)
 
 	r.HandleFunc("/health", handlers.HealthCheck).Methods("GET")
 
 	//producr routes
-	r.HandleFunc("/products", handlers.GetAllProducts).Methods("GET")
-	r.HandleFunc("/products/{id}", handlers.GetProductById).Methods("GET")
-	r.HandleFunc("/products", handlers.CreateProduct).Methods("POST")
-	r.HandleFunc("/products/{id}", handlers.UpdateProduct).Methods("PUT")
-	r.HandleFunc("/products/{id}", handlers.DeleteProduct).Methods("DELETE")
+	r.HandleFunc("/products", productHandler.GetAllProducts).Methods("GET")
+	r.HandleFunc("/products/{id}", productHandler.GetProductById).Methods("GET")
+	r.HandleFunc("/products", productHandler.CreateProduct).Methods("POST")
+	r.HandleFunc("/products/{id}", productHandler.UpdateProduct).Methods("PUT")
+	r.HandleFunc("/products/{id}", productHandler.DeleteProduct).Methods("DELETE")
 
 	//auth service
 
-	authService := services.NewAuthService(db)
+	authService := services.NewAuthService(conn)
 	authHandler := handlers.NewAuthHandler(authService)
 	//auth routes
 	r.HandleFunc("/register", authHandler.RegisterUser).Methods("POST")

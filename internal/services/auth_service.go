@@ -5,6 +5,7 @@ import (
 	"os"
 	"time"
 
+	"github.com/Namith667/GoQuick/internal/config"
 	"github.com/Namith667/GoQuick/internal/models"
 	"github.com/golang-jwt/jwt/v5"
 	"golang.org/x/crypto/bcrypt"
@@ -35,11 +36,12 @@ func generateJWT(user models.User) (string, error) {
 		return "", errors.New("JWT SECRET DOES NOT EXIST")
 	}
 
+	expTime := config.GetExpirationTime()
 	claims := jwt.MapClaims{
 		"username": user.Name,
 		"email":    user.Email,
 		"role":     user.Role,
-		"exp":      time.Now().Add(time.Hour * 72).Unix(),
+		"exp":      time.Now().Add(time.Hour * time.Duration(expTime)).Unix(),
 	}
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
@@ -67,10 +69,10 @@ func (as *AuthService) AuthenticateUser(email, password string) (string, error) 
 	var user models.User
 	result := as.DB.Where("email=?", email).First(&user)
 	if result.Error != nil {
-		return "", errors.New("Invalid credentials")
+		return "", errors.New("invalid credentials")
 	}
 	if !VerifyPassword(user.Password, password) {
-		return "", errors.New("Invalid Password")
+		return "", errors.New("invalid password")
 	}
 	token, err := generateJWT(user)
 	if err != nil {
