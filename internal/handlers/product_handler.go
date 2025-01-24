@@ -10,20 +10,38 @@ import (
 	"github.com/gorilla/mux"
 )
 
-func GetAllProducts(w http.ResponseWriter, r *http.Request) {
-	database := db.Connect()
+// ProductHandler struct with dependency injection
+type ProductHandler struct {
+	DB db.Database
+}
+
+// NewProductHandler initializes ProductHandler
+func NewProductHandler(database db.Database) *ProductHandler {
+	return &ProductHandler{DB: database}
+}
+
+func (h *ProductHandler) GetAllProducts(w http.ResponseWriter, r *http.Request) {
 
 	var products models.Product
-	database.Find(&products)
+	conn, err := h.DB.Connect()
+	if err != nil {
+		http.Error(w, "Database connection error", http.StatusInternalServerError)
+		return
+	}
+	conn.Find(&products)
 
 	w.Header().Set("Content-type", "application/json")
 	json.NewEncoder(w).Encode(products)
 
 }
 
-func GetProductById(w http.ResponseWriter, r *http.Request) {
-	database := db.Connect()
+func (h *ProductHandler) GetProductById(w http.ResponseWriter, r *http.Request) {
 	var product models.Product
+	conn, err := h.DB.Connect()
+	if err != nil {
+		http.Error(w, "Database connection error", http.StatusInternalServerError)
+		return
+	}
 	vars := mux.Vars(r)
 	id, err := strconv.Atoi(vars["id"])
 	if err != nil {
@@ -31,7 +49,7 @@ func GetProductById(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	result := database.First(&product, id)
+	result := conn.First(&product, id)
 	if result.Error != nil {
 		http.Error(w, "Product not exists", http.StatusNotFound)
 		return
@@ -41,32 +59,40 @@ func GetProductById(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(product)
 }
 
-func CreateProduct(w http.ResponseWriter, r *http.Request) {
-	database := db.Connect()
+func (h *ProductHandler) CreateProduct(w http.ResponseWriter, r *http.Request) {
 	var product models.Product
-
 	err := json.NewDecoder(r.Body).Decode(&product)
 	if err != nil {
 		http.Error(w, "Invalid payload", http.StatusBadRequest)
 		return
 	}
 
-	database.Create(&product)
+	conn, err := h.DB.Connect()
+	if err != nil {
+		http.Error(w, "Database connection error", http.StatusInternalServerError)
+		return
+	}
+
+	conn.Create(&product)
 	w.WriteHeader(http.StatusCreated)
 	json.NewEncoder(w).Encode(&product)
 
 }
 
-func UpdateProduct(w http.ResponseWriter, r *http.Request) {
-	database := db.Connect()
+func (h *ProductHandler) UpdateProduct(w http.ResponseWriter, r *http.Request) {
 	var product models.Product
+	conn, err := h.DB.Connect()
+	if err != nil {
+		http.Error(w, "Database connection error", http.StatusInternalServerError)
+		return
+	}
 	vars := mux.Vars(r)
 	id, err := strconv.Atoi(vars["id"])
 	if err != nil {
 		http.Error(w, "Invalid id!", http.StatusBadRequest)
 		return
 	}
-	result := database.First(&product, id)
+	result := conn.First(&product, id)
 	if result.Error != nil {
 		http.Error(w, "Product not found", http.StatusNotFound)
 		return
@@ -79,15 +105,19 @@ func UpdateProduct(w http.ResponseWriter, r *http.Request) {
 	}
 
 	//save updaed product
-	database.Save(&product)
+	conn.Save(&product)
 
 	w.Header().Set("Content-type", "application/json")
 	json.NewEncoder(w).Encode(&product)
 
 }
 
-func DeleteProduct(w http.ResponseWriter, r *http.Request) {
-	database := db.Connect()
+func (h *ProductHandler) DeleteProduct(w http.ResponseWriter, r *http.Request) {
+	conn, err := h.DB.Connect()
+	if err != nil {
+		http.Error(w, "Database connection error", http.StatusInternalServerError)
+		return
+	}
 
 	vars := mux.Vars(r)
 	id, err := strconv.Atoi(vars["id"])
@@ -95,7 +125,7 @@ func DeleteProduct(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Invalid prod id", http.StatusNotFound)
 		return
 	}
-	database.Delete(&models.Product{}, id)
+	conn.Delete(&models.Product{}, id)
 	w.WriteHeader(http.StatusNoContent)
 
 }
