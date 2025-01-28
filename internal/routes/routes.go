@@ -5,12 +5,15 @@ import (
 
 	"github.com/Namith667/GoQuick/internal/db"
 	"github.com/Namith667/GoQuick/internal/handlers"
+	"github.com/Namith667/GoQuick/internal/middleware"
 	"github.com/Namith667/GoQuick/internal/services"
-	"github.com/gorilla/mux"
+
+	//"github.com/go-chi/chi"
+	"github.com/go-chi/chi/v5"
 )
 
-func InitRoutes(database db.Database) *mux.Router {
-	r := mux.NewRouter()
+func InitRoutes(database db.Database) *chi.Mux {
+	r := chi.NewRouter()
 
 	conn, err := database.Connect()
 	if err != nil {
@@ -19,21 +22,25 @@ func InitRoutes(database db.Database) *mux.Router {
 
 	productHandler := handlers.NewProductHandler(database)
 
-	r.HandleFunc("/health", handlers.HealthCheck).Methods("GET")
+	r.Get("/health", handlers.HealthCheck)
 
-	//producr routes
-	r.HandleFunc("/products", productHandler.GetAllProducts).Methods("GET")
-	r.HandleFunc("/products/{id}", productHandler.GetProductById).Methods("GET")
-	r.HandleFunc("/products", productHandler.CreateProduct).Methods("POST")
-	r.HandleFunc("/products/{id}", productHandler.UpdateProduct).Methods("PUT")
-	r.HandleFunc("/products/{id}", productHandler.DeleteProduct).Methods("DELETE")
+	//public routes
+	r.Get("/products", productHandler.GetAllProducts)
+	r.Get("/products/{id}", productHandler.GetProductById)
 
-	//auth service
+	//private routes
+	// Product routes
+	r.Get("/products", productHandler.GetAllProducts)
+	r.Get("/products/{id}", productHandler.GetProductById)
+	r.With(middleware.RequireRole("admin")).Post("/products", productHandler.CreateProduct)
+	r.With(middleware.RequireRole("admin")).Put("/products/{id}", productHandler.UpdateProduct)
+	r.With(middleware.RequireRole("admin")).Delete("/products/{id}", productHandler.DeleteProduct)
 
+	// Auth routes
 	authService := services.NewAuthService(conn)
 	authHandler := handlers.NewAuthHandler(authService)
-	//auth routes
-	r.HandleFunc("/register", authHandler.RegisterUser).Methods("POST")
-	r.HandleFunc("/login", authHandler.Login).Methods("POST")
+	r.Post("/register", authHandler.RegisterUser)
+	r.Post("/login", authHandler.Login)
+
 	return r
 }

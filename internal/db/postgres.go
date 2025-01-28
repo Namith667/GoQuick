@@ -35,7 +35,7 @@ func (p *PostgresDB) RunMigrations() {
 		&models.Product{},
 	)
 	if err != nil {
-		log.Fatalf("Failed to migrate models", err)
+		log.Fatalf("Failed to migrate models %s", err)
 	}
 
 	log.Println("DB Migrations Sucess!!")
