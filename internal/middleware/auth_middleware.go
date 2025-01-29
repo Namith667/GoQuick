@@ -6,7 +6,9 @@ import (
 	"os"
 	"strings"
 
+	"github.com/Namith667/GoQuick/internal/logger"
 	"github.com/golang-jwt/jwt/v5"
+	"go.uber.org/zap"
 )
 
 type ContextKey string
@@ -17,6 +19,7 @@ func JWTAuthMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		authHeader := r.Header.Get("Authorization")
 		if authHeader == "" {
+			logger.Log.Warn("Missing authorization token")
 			http.Error(w, "Missing authorization token", http.StatusUnauthorized)
 			return
 		}
@@ -28,6 +31,7 @@ func JWTAuthMiddleware(next http.Handler) http.Handler {
 			return []byte(os.Getenv("JWT_SECRET")), nil
 		})
 		if err != nil || !token.Valid {
+			logger.Log.Warn("Invalid token", zap.Error(err))
 			http.Error(w, "Invalid token", http.StatusUnauthorized)
 			return
 		}
@@ -35,17 +39,20 @@ func JWTAuthMiddleware(next http.Handler) http.Handler {
 		// Extract role
 		claims, ok := token.Claims.(jwt.MapClaims)
 		if !ok {
+			logger.Log.Warn("Invalid token claims")
 			http.Error(w, "Invalid token claims", http.StatusUnauthorized)
 			return
 		}
 
 		role, ok := claims["role"].(string)
 		if !ok {
+			logger.Log.Warn("Missing role in token")
 			http.Error(w, "Missing role in token", http.StatusUnauthorized)
 			return
 		}
 
 		// Store role in context
+		logger.Log.Info("User authenticated", zap.String("role", role))
 		ctx := context.WithValue(r.Context(), UserRoleKey, role)
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
@@ -56,6 +63,7 @@ func RequireRole(role string) func(http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			userRole, ok := r.Context().Value(UserRoleKey).(string)
 			if !ok || userRole != role {
+				logger.Log.Info("Insufficient permissions")
 				http.Error(w, "Forbidden: Insufficient permissions", http.StatusForbidden)
 				return
 			}
