@@ -22,14 +22,14 @@ func (ah *AuthHandler) RegisterUser(w http.ResponseWriter, r *http.Request) {
 	var input models.RegisterUserInput
 
 	if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
-		logger.Log.Warn("Invalid user input", zap.Error(err))
+		logger.Log.Error("Invalid user input", zap.Error(err))
 		http.Error(w, "invalid input", http.StatusBadRequest)
 		return
 	}
 
 	user, err := ah.AuthService.RegisterUser(input.Username, input.Email, input.Password)
 	if err != nil {
-		logger.Log.Warn("User registration failed", zap.Error(err))
+		logger.Log.Error("User registration failed", zap.Error(err))
 		http.Error(w, "User registration failed", http.StatusInternalServerError)
 		return
 	}
@@ -47,14 +47,14 @@ func (ah *AuthHandler) RegisterUser(w http.ResponseWriter, r *http.Request) {
 func (ah *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 	var input models.LoginUserInput
 	if error := json.NewDecoder(r.Body).Decode(&input); error != nil {
-		logger.Log.Warn("Invalid user input", zap.Error(error))
+		logger.Log.Error("Invalid user input", zap.Error(error))
 		http.Error(w, "Invalid input", http.StatusBadRequest)
 		return
 	}
 
 	token, err := ah.AuthService.AuthenticateUser(input.Email, input.Password)
 	if err != nil {
-		logger.Log.Warn("Invalid Credentials", zap.Error(err))
+		logger.Log.Error("Invalid Credentials", zap.Error(err))
 		http.Error(w, "invalid credentials from token gen", http.StatusUnauthorized)
 		return
 	}

@@ -1,12 +1,12 @@
 package routes
 
 import (
-	"log"
-
 	"github.com/Namith667/GoQuick/internal/db"
 	"github.com/Namith667/GoQuick/internal/handlers"
+	"github.com/Namith667/GoQuick/internal/logger"
 	"github.com/Namith667/GoQuick/internal/middleware"
 	"github.com/Namith667/GoQuick/internal/services"
+	"go.uber.org/zap"
 
 	//"github.com/go-chi/chi"
 	"github.com/go-chi/chi/v5"
@@ -17,7 +17,7 @@ func InitRoutes(database db.Database) *chi.Mux {
 
 	conn, err := database.Connect()
 	if err != nil {
-		log.Fatalf("Database connection failed: %v", err)
+		logger.Log.Error("Database connection failed:", zap.Error(err))
 	}
 
 	productHandler := handlers.NewProductHandler(database)
