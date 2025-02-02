@@ -32,9 +32,9 @@ func InitRoutes(database db.Database) *chi.Mux {
 	// Product routes
 	r.Get("/products", productHandler.GetAllProducts)
 	r.Get("/products/{id}", productHandler.GetProductById)
-	r.With(middleware.RequireRole("admin")).Post("/products", productHandler.CreateProduct)
-	r.With(middleware.RequireRole("admin")).Put("/products/{id}", productHandler.UpdateProduct)
-	r.With(middleware.RequireRole("admin")).Delete("/products/{id}", productHandler.DeleteProduct)
+	r.With(middleware.JWTAuthMiddleware).With(middleware.RequireRole("admin")).Post("/products", productHandler.CreateProduct)
+	r.With(middleware.JWTAuthMiddleware).With(middleware.RequireRole("admin")).Put("/products/{id}", productHandler.UpdateProduct)
+	r.With(middleware.JWTAuthMiddleware).With(middleware.RequireRole("admin")).Delete("/products/{id}", productHandler.DeleteProduct)
 
 	// Auth routes
 	authService := services.NewAuthService(conn)

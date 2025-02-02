@@ -24,7 +24,7 @@ func NewProductHandler(database db.Database) *ProductHandler {
 
 func (h *ProductHandler) GetAllProducts(w http.ResponseWriter, r *http.Request) {
 
-	var products models.Product
+	var products []models.Product
 	conn, err := h.DB.Connect()
 	if err != nil {
 		logger.Log.Error("DB Connection error", zap.Error(err))

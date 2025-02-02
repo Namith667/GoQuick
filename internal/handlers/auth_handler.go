@@ -27,7 +27,7 @@ func (ah *AuthHandler) RegisterUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	user, err := ah.AuthService.RegisterUser(input.Username, input.Email, input.Password)
+	user, err := ah.AuthService.RegisterUser(input.Username, input.Email, input.Password, input.Role)
 	if err != nil {
 		logger.Log.Error("User registration failed", zap.Error(err))
 		http.Error(w, "User registration failed", http.StatusInternalServerError)
@@ -38,6 +38,7 @@ func (ah *AuthHandler) RegisterUser(w http.ResponseWriter, r *http.Request) {
 		ID:       user.ID,
 		Username: user.Name,
 		Email:    user.Email,
+		Role:     user.Role,
 	}
 	logger.Log.Info("User Registered successfully", zap.String("email", input.Email))
 	w.WriteHeader(http.StatusCreated)

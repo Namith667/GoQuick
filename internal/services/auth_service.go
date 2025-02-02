@@ -47,10 +47,21 @@ func generateJWT(user models.User) (string, error) {
 	}
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+	logger.Log.Info("Generated JWT", zap.Any("claims", claims))
 	return token.SignedString([]byte(secret))
 }
 
-func (as *AuthService) RegisterUser(username, email, password string) (models.User, error) {
+func (as *AuthService) RegisterUser(username, email, password, role string) (models.User, error) {
+	///
+
+	logger.Log.Info("Received registration input",
+		zap.String("username", username),
+		zap.String("email", email),
+		zap.String("role", role),
+	)
+
+	///
+
 	hashedPassword, err := HashPassword(password)
 	if err != nil {
 		return models.User{}, err
@@ -60,8 +71,15 @@ func (as *AuthService) RegisterUser(username, email, password string) (models.Us
 		Name:     username,
 		Password: hashedPassword,
 		Email:    email,
-		Role:     "user",
+		Role:     role,
 	}
+
+	///
+	logger.Log.Info("Saving user",
+		zap.String("name", user.Name),
+		zap.String("email", user.Email),
+		zap.String("role", user.Role),
+	)
 
 	result := as.DB.Create(&user)
 	return user, result.Error
@@ -78,6 +96,8 @@ func (as *AuthService) AuthenticateUser(email, password string) (string, error) 
 		logger.Log.Error("Database error", zap.Error(result.Error))
 		return "", result.Error
 	}
+	logger.Log.Info("User found", zap.String("role", user.Role)) // Log the user's role
+
 	if !VerifyPassword(user.Password, password) {
 		logger.Log.Warn("Invalid password attempt", zap.String("email", email))
 		return "", errors.New("invalid password")
@@ -87,7 +107,7 @@ func (as *AuthService) AuthenticateUser(email, password string) (string, error) 
 		logger.Log.Error("Token generation failed", zap.Error(err))
 		return "", errors.New("could not generate token")
 	}
-	logger.Log.Info("User authenticated successfully", zap.String("email", email))
+	logger.Log.Info("User authenticated successfully", zap.String("email", email), zap.String("role", user.Role))
 	return token, nil
 
 }
