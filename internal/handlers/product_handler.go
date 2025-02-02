@@ -6,8 +6,10 @@ import (
 	"strconv"
 
 	"github.com/Namith667/GoQuick/internal/db"
+	"github.com/Namith667/GoQuick/internal/logger"
 	"github.com/Namith667/GoQuick/internal/models"
 	"github.com/gorilla/mux"
+	"go.uber.org/zap"
 )
 
 // ProductHandler struct with dependency injection
@@ -25,11 +27,12 @@ func (h *ProductHandler) GetAllProducts(w http.ResponseWriter, r *http.Request) 
 	var products models.Product
 	conn, err := h.DB.Connect()
 	if err != nil {
+		logger.Log.Error("DB Connection error", zap.Error(err))
 		http.Error(w, "Database connection error", http.StatusInternalServerError)
 		return
 	}
 	conn.Find(&products)
-
+	logger.Log.Info("Product fetch success")
 	w.Header().Set("Content-type", "application/json")
 	json.NewEncoder(w).Encode(products)
 
@@ -39,6 +42,7 @@ func (h *ProductHandler) GetProductById(w http.ResponseWriter, r *http.Request) 
 	var product models.Product
 	conn, err := h.DB.Connect()
 	if err != nil {
+		logger.Log.Error("DB Connection error", zap.Error(err))
 		http.Error(w, "Database connection error", http.StatusInternalServerError)
 		return
 	}
@@ -63,12 +67,18 @@ func (h *ProductHandler) CreateProduct(w http.ResponseWriter, r *http.Request) {
 	var product models.Product
 	err := json.NewDecoder(r.Body).Decode(&product)
 	if err != nil {
+		logger.Log.Error("invalid payload", zap.Error(err))
 		http.Error(w, "Invalid payload", http.StatusBadRequest)
+		return
+	}
+	if product.Name == "" || product.Price < 0 {
+		http.Error(w, "Invalid Product adata ", http.StatusBadRequest)
 		return
 	}
 
 	conn, err := h.DB.Connect()
 	if err != nil {
+		logger.Log.Error("DB Connection error", zap.Error(err))
 		http.Error(w, "Database connection error", http.StatusInternalServerError)
 		return
 	}
@@ -83,6 +93,7 @@ func (h *ProductHandler) UpdateProduct(w http.ResponseWriter, r *http.Request) {
 	var product models.Product
 	conn, err := h.DB.Connect()
 	if err != nil {
+		logger.Log.Error("DB Connection error", zap.Error(err))
 		http.Error(w, "Database connection error", http.StatusInternalServerError)
 		return
 	}
@@ -115,6 +126,7 @@ func (h *ProductHandler) UpdateProduct(w http.ResponseWriter, r *http.Request) {
 func (h *ProductHandler) DeleteProduct(w http.ResponseWriter, r *http.Request) {
 	conn, err := h.DB.Connect()
 	if err != nil {
+		logger.Log.Error("DB Connection error", zap.Error(err))
 		http.Error(w, "Database connection error", http.StatusInternalServerError)
 		return
 	}
