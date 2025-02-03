@@ -1,4 +1,4 @@
-package middleware
+package auth
 
 import (
 	"context"
@@ -15,6 +15,22 @@ type ContextKey string
 
 const UserRoleKey ContextKey = "userRole"
 
+func ParseJWT(tokenString string) (jwt.MapClaims, error) {
+	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
+		return []byte(os.Getenv("JWT_SECRET_KEY")), nil
+	})
+
+	if err != nil || !token.Valid {
+		return nil, err
+	}
+
+	claims, ok := token.Claims.(jwt.MapClaims)
+	if !ok {
+		return nil, err
+	}
+	return claims, nil
+}
+
 func JWTAuthMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		authHeader := r.Header.Get("Authorization")
@@ -23,23 +39,13 @@ func JWTAuthMiddleware(next http.Handler) http.Handler {
 			http.Error(w, "Missing authorization token", http.StatusUnauthorized)
 			return
 		}
-		tokenString := strings.TrimPrefix(authHeader, "Bearer ")//trim tokenstring to remove "Bearer" heading
+		tokenString := strings.TrimPrefix(authHeader, "Bearer ") //trim tokenstring to remove "Bearer" heading
 
 		// Parse token
-		token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
-			return []byte(os.Getenv("JWT_SECRET_KEY")), nil
-		})
-		if err != nil || !token.Valid {
+		claims, err := ParseJWT(tokenString)
+		if err != nil {
 			logger.Log.Warn("Invalid token", zap.Error(err))
 			http.Error(w, "Invalid token", http.StatusUnauthorized)
-			return
-		}
-
-		// Extract role
-		claims, ok := token.Claims.(jwt.MapClaims)
-		if !ok {
-			logger.Log.Warn("Invalid token claims")
-			http.Error(w, "Invalid token claims", http.StatusUnauthorized)
 			return
 		}
 

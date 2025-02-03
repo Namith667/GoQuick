@@ -5,9 +5,9 @@ import (
 )
 
 type User struct {
-	ID        uint `gorm:"primaryKey"`
-	Name      string
-	Email     string `gorm:"unique"`
+	ID        uint   `gorm:"primaryKey"`
+	Username  string `json:"username"`
+	Email     string `gorm:"unique" json:"email"`
 	Password  string
 	CreatedAt time.Time
 	UpdatedAt time.Time
