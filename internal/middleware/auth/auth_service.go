@@ -1,4 +1,4 @@
-package services
+package auth
 
 import (
 	"errors"
@@ -35,12 +35,12 @@ func VerifyPassword(hashedPassword, password string) bool {
 func generateJWT(user models.User) (string, error) {
 	secret := os.Getenv("JWT_SECRET_KEY")
 	if secret == "" {
-		return "", errors.New("JWT SECRET DOES NOT EXIST")
+		return "", errors.New("JWT_SECRET does not exist")
 	}
 
 	expTime := config.GetExpirationTime()
 	claims := jwt.MapClaims{
-		"username": user.Name,
+		"username": user.Username,
 		"email":    user.Email,
 		"role":     user.Role,
 		"exp":      time.Now().Add(time.Hour * time.Duration(expTime)).Unix(),
@@ -50,17 +50,17 @@ func generateJWT(user models.User) (string, error) {
 	return token.SignedString([]byte(secret))
 }
 
-func (as *AuthService) RegisterUser(username, email, password string) (models.User, error) {
+func (as *AuthService) RegisterUser(username, email, password, role string) (models.User, error) {
 	hashedPassword, err := HashPassword(password)
 	if err != nil {
 		return models.User{}, err
 	}
 
 	user := models.User{
-		Name:     username,
+		Username: username,
 		Password: hashedPassword,
 		Email:    email,
-		Role:     "user",
+		Role:     role,
 	}
 
 	result := as.DB.Create(&user)
@@ -87,7 +87,6 @@ func (as *AuthService) AuthenticateUser(email, password string) (string, error) 
 		logger.Log.Error("Token generation failed", zap.Error(err))
 		return "", errors.New("could not generate token")
 	}
-	logger.Log.Info("User authenticated successfully", zap.String("email", email))
+	logger.Log.Info("User authenticated successfully", zap.String("email", email), zap.String("role", user.Role))
 	return token, nil
-
 }

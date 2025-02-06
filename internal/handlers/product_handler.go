@@ -8,6 +8,7 @@ import (
 	"github.com/Namith667/GoQuick/internal/db"
 	"github.com/Namith667/GoQuick/internal/logger"
 	"github.com/Namith667/GoQuick/internal/models"
+	"github.com/go-chi/chi/v5"
 	"github.com/gorilla/mux"
 	"go.uber.org/zap"
 )
@@ -24,7 +25,7 @@ func NewProductHandler(database db.Database) *ProductHandler {
 
 func (h *ProductHandler) GetAllProducts(w http.ResponseWriter, r *http.Request) {
 
-	var products models.Product
+	var products []models.Product
 	conn, err := h.DB.Connect()
 	if err != nil {
 		logger.Log.Error("DB Connection error", zap.Error(err))
@@ -46,10 +47,24 @@ func (h *ProductHandler) GetProductById(w http.ResponseWriter, r *http.Request) 
 		http.Error(w, "Database connection error", http.StatusInternalServerError)
 		return
 	}
-	vars := mux.Vars(r)
-	id, err := strconv.Atoi(vars["id"])
+
+	logger.Log.Info("Request URL", zap.String("url", r.URL.Path))
+
+	// Extract the "id" path parameter from the URL using chi's URLParam method
+	idStr := chi.URLParam(r, "id")
+
+	logger.Log.Info("Extracted ID from URL", zap.String("id", idStr))
+
+	if idStr == "" {
+		logger.Log.Error("Empty ID parameter")
+		http.Error(w, "ID parameter is required", http.StatusBadRequest)
+		return
+	}
+
+	id, err := strconv.Atoi(idStr)
 	if err != nil {
-		http.Error(w, "invalid id", http.StatusBadRequest)
+		logger.Log.Error("Error converting id to integer", zap.String("id", idStr), zap.Error(err))
+		http.Error(w, "Invalid id", http.StatusBadRequest)
 		return
 	}
 
@@ -59,8 +74,15 @@ func (h *ProductHandler) GetProductById(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	w.Header().Set("Content-type", "application/json")
-	json.NewEncoder(w).Encode(product)
+	logger.Log.Info("Fetched product", zap.Any("product", product))
+
+	w.Header().Set("Content-Type", "application/json")
+	err = json.NewEncoder(w).Encode(product)
+	if err != nil {
+		logger.Log.Error("Error encoding product", zap.Error(err))
+		http.Error(w, "Error encoding response", http.StatusInternalServerError)
+		return
+	}
 }
 
 func (h *ProductHandler) CreateProduct(w http.ResponseWriter, r *http.Request) {

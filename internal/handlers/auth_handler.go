@@ -5,16 +5,16 @@ import (
 	"net/http"
 
 	"github.com/Namith667/GoQuick/internal/logger"
+	"github.com/Namith667/GoQuick/internal/middleware/auth"
 	"github.com/Namith667/GoQuick/internal/models"
-	"github.com/Namith667/GoQuick/internal/services"
 	"go.uber.org/zap"
 )
 
 type AuthHandler struct {
-	AuthService *services.AuthService
+	AuthService *auth.AuthService
 }
 
-func NewAuthHandler(authService *services.AuthService) *AuthHandler {
+func NewAuthHandler(authService *auth.AuthService) *AuthHandler {
 	return &AuthHandler{AuthService: authService}
 }
 
@@ -27,7 +27,7 @@ func (ah *AuthHandler) RegisterUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	user, err := ah.AuthService.RegisterUser(input.Username, input.Email, input.Password)
+	user, err := ah.AuthService.RegisterUser(input.Username, input.Email, input.Password, input.Role)
 	if err != nil {
 		logger.Log.Error("User registration failed", zap.Error(err))
 		http.Error(w, "User registration failed", http.StatusInternalServerError)
@@ -36,10 +36,11 @@ func (ah *AuthHandler) RegisterUser(w http.ResponseWriter, r *http.Request) {
 	//added a reg-user response(see models package) to avoid sending back password
 	response := models.UserResponse{
 		ID:       user.ID,
-		Username: user.Name,
+		Username: user.Username,
 		Email:    user.Email,
+		Role:     user.Role,
 	}
-	logger.Log.Info("User Registered successfully", zap.String("email", input.Email))
+	logger.Log.Info("User Registered successfully", zap.String("name", input.Username))
 	w.WriteHeader(http.StatusCreated)
 	json.NewEncoder(w).Encode(response)
 }
