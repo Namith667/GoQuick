@@ -1,4 +1,4 @@
-FROM golang:alpine
+FROM golang:alpine AS builder
 
 ENV CGO_ENABLED=0 \
     GOOS=linux \
@@ -15,6 +15,12 @@ COPY . .
 
 
 RUN go build -o goquick .
+
+FROM alpine:3.18
+
+WORKDIR /root/
+
+COPY --from=builder /app/goquick .
 
 EXPOSE 8080
 
